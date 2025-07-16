@@ -5,5 +5,5 @@ set(CMAKE_CXX_STANDARD 14)
 
 add_executable(Text_editor
         src/main.cpp
-        includes/textEditor.cpp
-        includes/textEditor.h)
+        includes/TextEditor.cpp
+        includes/TextEditor.h)
