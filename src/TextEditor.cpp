@@ -26,6 +26,7 @@ void TextEditor::run() {
     while (running) {
         clear();
         drawText();
+        drawStatusBar();
         move(cursor.y, cursor.x);
         refresh();
 
@@ -81,6 +82,8 @@ void TextEditor::handleInput(int ch) {
 
 // function for writing test on window on the correct positions
 void TextEditor::drawText() {
+    int rows, cols;
+    getmaxyx(stdscr, rows, cols);
     for (size_t i = 0; i < lines.size(); ++i) {
         mvprintw(i, 0, "%s", lines[i].c_str());
     }
@@ -91,8 +94,9 @@ void TextEditor::drawStatusBar() {
     int rows, cols;
     getmaxyx(stdscr, rows, cols);  // store rows and cols of standard screen
     attron(A_REVERSE);  // reverse the color of background and foreground
-    mvprintw(rows - 1, 0, "File: %s | Ln: %d, col: %d | Ctrl+G: Save | Ctrl+X: Exit", fileName.c_str(), cursor.x + 1,
+    mvprintw(rows - 1, 0, "File: %s | Ln: %d, col: %d | Ctrl+G: Save | Ctrl+X: Exit", this->fileName.c_str(), cursor.x + 1,
              cursor.y + 1);
+    clrtoeol();
     attroff(A_REVERSE); // turn off the attron
 }
 
