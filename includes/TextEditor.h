@@ -4,20 +4,37 @@
 
 #ifndef TEXTEDITOR_H
 #define TEXTEDITOR_H
-#include <string>
-#include <fstream>
 
+#include <fstream>
+#include <ncurses.h>
+#include <string>
+#include <vector>
+
+struct Cursor {
+    int x = 0;
+    int y = 0;
+};
 
 class TextEditor {
-    public:
-    void openFile(const std::string& fileName);
-    void writeToFile();
-    void run();
-    void displayContent();
-
-    private:
+private:
+    std::vector<std::string> lines;
+    Cursor cursor;
     std::string fileName;
-    std::vector<std::string> content;
+    bool running = true;
+
+private:
+    void drawText();
+    void drawStatusBar();
+    void handleInput(int ch);
+    void insertChar(char c);
+    void deleteChar();
+    void insertNewLine();
+    void loadFile();
+    void saveFile();
+
+public:
+    TextEditor(const std::string& fileName);
+    void run();
 };
 
 
