@@ -21,6 +21,9 @@ private:
     Cursor cursor;
     std::string fileName;
     bool running = true;
+    int topLineIndex = 0;
+    const int lineNumberOffset = 2;
+    bool modified = false;
 
 private:
     void drawText();
@@ -31,6 +34,8 @@ private:
     void insertNewLine();
     void loadFile();
     void saveFile();
+    void search();
+    void helpWindow();
 
 public:
     TextEditor(const std::string& fileName);

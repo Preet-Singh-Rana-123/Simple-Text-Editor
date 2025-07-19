@@ -27,7 +27,7 @@ void TextEditor::run() {
         clear();
         drawText();
         drawStatusBar();
-        move(cursor.y, cursor.x);
+        move(cursor.y, cursor.x + lineNumberOffset);
         refresh();
 
         int ch = getch();
@@ -39,6 +39,23 @@ void TextEditor::run() {
 // Private Functions
 
 void TextEditor::handleInput(int ch) {
+    int rows, cols;
+    getmaxyx(stdscr, rows, cols);
+
+    int maxVisibleRows = rows - 1;
+
+    if (cursor.y < topLineIndex) {
+        topLineIndex = cursor.y;
+    }
+    if (cursor.y >= topLineIndex + maxVisibleRows) {
+        topLineIndex = cursor.y - maxVisibleRows + 1;
+    }
+
+    // Make sure we never scroll past the bottom of the file
+    if (topLineIndex > (int)lines.size() - maxVisibleRows) {
+        topLineIndex = std::max(0, (int)lines.size() - maxVisibleRows);
+    }
+
     switch (ch) {
         case 7:
             saveFile();
@@ -66,26 +83,47 @@ void TextEditor::handleInput(int ch) {
             break;
         case 10:
             insertNewLine();
+            modified = true;
             break;
         case KEY_BACKSPACE:
         case 127:
             deleteChar();
+            modified = true;
+            break;
+        case 9:
+            lines[cursor.y].insert(cursor.x,"    ");
+            cursor.x += 4;
+            modified = true;
+            break;
+        case 6:
+            search();
+            break;
+        case 1:
+            helpWindow();
             break;
         default:
             if (isprint(ch)) {
                 insertChar((char)ch);
             }
+            modified = true;
             break;
     }
 }
 
 
-// function for writing test on window on the correct positions
+// function for writing text on window on the correct positions
 void TextEditor::drawText() {
     int rows, cols;
     getmaxyx(stdscr, rows, cols);
-    for (size_t i = 0; i < lines.size(); ++i) {
-        mvprintw(i, 0, "%s", lines[i].c_str());
+    int maxVisibleRows = rows - 1;
+    int cursorScreenY = cursor.y - topLineIndex;
+    int cursorScreenX = cursor.x + lineNumberOffset;
+
+    if (cursorScreenY >= 0 && cursorScreenY < maxVisibleRows) {
+        move(cursorScreenY, cursorScreenX);
+    }
+    for (size_t i = 0; i < maxVisibleRows &&  i + topLineIndex < lines.size(); ++i) {
+        mvprintw(i, 0, "~ %s", lines[i + topLineIndex].c_str());
     }
 }
 
@@ -94,8 +132,14 @@ void TextEditor::drawStatusBar() {
     int rows, cols;
     getmaxyx(stdscr, rows, cols);  // store rows and cols of standard screen
     attron(A_REVERSE);  // reverse the color of background and foreground
-    mvprintw(rows - 1, 0, "File: %s | Ln: %d, col: %d | Ctrl+G: Save | Ctrl+X: Exit", this->fileName.c_str(), cursor.x + 1,
+    if (modified) {
+        mvprintw(rows - 1, 0, "File: %s [*] | Ln: %d, col: %d | Ctrl+G: Save | Ctrl+X: Exit | Ctrl+F: Search", this->fileName.c_str(), cursor.x + 1,
              cursor.y + 1);
+    }else {
+        mvprintw(rows - 1, 0, "File: %s | Ln: %d, col: %d | Ctrl+G: Save | Ctrl+X: Exit | Ctrl+F: Search", this->fileName.c_str(), cursor.x + 1,
+             cursor.y + 1);
+    }
+
     clrtoeol();
     attroff(A_REVERSE); // turn off the attron
 }
@@ -130,6 +174,41 @@ void TextEditor::deleteChar() {
         cursor.y--;
     }
 }
+
+void TextEditor::search() {
+    int rows, cols;
+    getmaxyx(stdscr, rows, cols);
+    echo();
+    curs_set(1);
+    mvprintw(rows - 1, 0, "Search: ");
+    clrtoeol();
+    char searchQueary[256];
+    getstr(searchQueary);
+    noecho();
+
+    for (int i = cursor.y; i < lines.size(); ++i) {
+        size_t pos = lines[i].find(searchQueary);
+        if (pos != std::string::npos) {
+            cursor.x = pos;
+            cursor.y = i;
+            break;
+        }
+    }
+}
+
+void TextEditor::helpWindow() {
+    WINDOW* helpWindow = newwin(10,40,5,10);
+    box(helpWindow,0,0);
+    mvwprintw(helpWindow, 1, 2, "Ctrl+X: Exit");
+    mvwprintw(helpWindow, 2, 2, "Ctrl+G: Save");
+    mvwprintw(helpWindow, 3, 2, "Ctrl+F: Search");
+    mvwprintw(helpWindow, 4, 2, "Ctrl+H: Help");
+    mvwprintw(helpWindow, 5, 2, "Press any key to close...");
+    wrefresh(helpWindow);
+    getch();
+    delwin(helpWindow);
+}
+
 
 // function for loading all data of file into our lines vector so that we can perform operation on them
 void TextEditor::loadFile() {
